@@ -46,26 +46,10 @@ import sys
 import sqlite3
 import re
 
-OPEN_BRACKET = '['
-CLOSE_BRACKET = ']'
-DIGIT = '[0-9]'
-LETTER = '[a-Z]'
-
-START_SENTINEL = '%'
-TRACK_ONE_FIELD_SEPARATOR = '[^]'
-END_SENTINEL = '[?]'
-LONGITUDINAL_REDUNDANCY_CHECK = ""
-WILDCARD = '[*]'
-
-SEMICOLON = ';'
-
-TRACK_TWO_FIELD_SEPARATOR = "[=]"
-
-TEST = START_SENTINEL + LETTER + WILDCARD + DIGIT 
-primary_account_pattern = r"(%[A-z][0-9]+[\^][A-z]+[\/]+)"
-name_pattern = r"([\^][A-z|\s]+[\/][A-z|\s]+[\^])"
-
-TRACK_TWO = START_SENTINEL + LETTER + WILDCARD + DIGIT + TRACK_TWO_FIELD_SEPARATOR + DIGIT + WILDCARD + END_SENTINEL
+primary_account_pattern = r"(%[A-z][0-9]+[\^][A-z]+[\/]+)"      # Pattern to match the primary account followed by the format code.
+name_pattern = r"([\^][A-z|\s]+[\/][A-z|\s]+[\^])"              # Provides the account's user name.
+additional_primary_account = r"([\?][\;][0-9]+[=])"             # I've found that many times this returns the same thing as the primary account number.
+additional_data = r"([=][0-9]+[\?])"                            # If Track 1 layout is used, this will return None.
 
 conn = None
 c = None
@@ -95,10 +79,7 @@ def return_date_string():
     print(short_date)
     return short_date
 
-
 def search_pattern(pattern, data):
-    print("Pattern: " + pattern)
-    print("String: " + data)
     compiled_pattern = re.compile(pattern)
     match = compiled_pattern.search(data)
     if(match != None):
@@ -118,6 +99,7 @@ def match_pattern(pattern, data):
     match = compiled_pattern.match(data)
     if(match != None):
         print(match.group(0))
+        return match.group(0)
 
 def listen_for_magnetic_swipe():
     while True:
@@ -125,7 +107,7 @@ def listen_for_magnetic_swipe():
             try:
                 ID = getpass.getpass(prompt = 'Please swipe your ID card. ')
                 print(ID)
-                search_pattern(name_pattern,ID)
+                search_pattern(additional_data,ID)
             except KeyboardInterrupt:
                 sys.exit(1)
 
