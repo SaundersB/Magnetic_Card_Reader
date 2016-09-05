@@ -108,22 +108,25 @@ class MagneticReader():
         name = self.search_pattern(name_pattern, data)
         additional_data = self.search_pattern(additional_data_pattern, data)
 
+        self.clean_string_data(primary_account, name, additional_data)
+
+    def clean_string_data(self, primary_account, name, additional_data):
         # Remove excess symbols.
-        primary_account = primary_account.replace("^","")
-        primary_account = primary_account.replace("%","")
-
-        name = name.replace("^","")
-        name = name.replace(" ","")
-
-        additional_data = additional_data.replace("?","")
-        additional_data = additional_data.replace("=","")
-
         if(primary_account is not None):
+            primary_account = primary_account.replace("^","")
+            primary_account = primary_account.replace("%","")
             print(primary_account)
+
         if(name is not None):
+            name = name.replace("^","")
+            name = name.replace(" ","")
             print(name)
+
         if(additional_data is not None):
+            additional_data = additional_data.replace("?","")
+            additional_data = additional_data.replace("=","")
             print(additional_data)
+
 
     def listen_for_magnetic_swipe(self):
         while True:
