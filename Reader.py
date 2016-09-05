@@ -46,10 +46,10 @@ import sys
 import sqlite3
 import re
 
-primary_account_pattern = r"(%[A-z][0-9]+[\^][A-z]+[\/]+)"      # Pattern to match the primary account followed by the format code.
+primary_account_pattern = r"(%[A-z][0-9]+[\^])"      # Pattern to match the primary account followed by the format code.
 name_pattern = r"([\^][A-z|\s]+[\/][A-z|\s]+[\^])"              # Provides the account's user name.
 additional_primary_account = r"([\?][\;][0-9]+[=])"             # I've found that many times this returns the same thing as the primary account number.
-additional_data = r"([=][0-9]+[\?])"                            # If Track 1 layout is used, this will return None.
+additional_data_pattern = r"([=][0-9]+[\?])"                            # If Track 1 layout is used, this will return None.
 
 
 class MagneticReader():
@@ -89,7 +89,7 @@ class MagneticReader():
         compiled_pattern = re.compile(pattern)
         match = compiled_pattern.search(data)
         if(match != None):
-            print(match.group(0))
+            return match.group(0)
 
     def match_pattern(self, pattern, data):
         """
@@ -97,16 +97,33 @@ class MagneticReader():
         return a corresponding match object. Return None if the string does not match the pattern; 
         note that this is different from a zero-length match.
         """
-        print("Pattern: " + pattern)
-        print("String: " + data)
         compiled_pattern = re.compile(pattern)
         match = compiled_pattern.match(data)
         if(match != None):
-            print(match.group(0))
             return match.group(0)
 
-    def obtain_user_data(self):
-        pass
+    def obtain_user_data(self, data):
+        # Search string data for intended patterns.
+        primary_account = self.search_pattern(primary_account_pattern, data)
+        name = self.search_pattern(name_pattern, data)
+        additional_data = self.search_pattern(additional_data_pattern, data)
+
+        # Remove excess symbols.
+        primary_account = primary_account.replace("^","")
+        primary_account = primary_account.replace("%","")
+
+        name = name.replace("^","")
+        name = name.replace(" ","")
+
+        additional_data = additional_data.replace("?","")
+        additional_data = additional_data.replace("=","")
+
+        if(primary_account is not None):
+            print(primary_account)
+        if(name is not None):
+            print(name)
+        if(additional_data is not None):
+            print(additional_data)
 
     def listen_for_magnetic_swipe(self):
         while True:
@@ -114,7 +131,7 @@ class MagneticReader():
                 try:
                     ID = getpass.getpass(prompt = 'Please swipe your ID card. ')
                     print(ID)
-                    self.search_pattern(additional_data,ID)
+                    self.obtain_user_data(ID)
                 except KeyboardInterrupt:
                     sys.exit(1)
 
