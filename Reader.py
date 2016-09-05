@@ -40,7 +40,6 @@ Track 2 ("American Banking Association,") is currently most commonly used, thoug
 '''
 import getpass
 import datetime
-import csv
 import os
 import sys
 import sqlite3
@@ -56,11 +55,15 @@ class MagneticReader():
     def __init__(self):
         self.conn = None
         self.c = None
+        self.name = None
+        self.account_number = None
+        self.additional_data = None
 
 
     def establish_data_base(self):
         """ This function will create a new database file if it does not exist. """
         self.conn = sqlite3.connect('magnetic_entries.db')
+        self.c = self.conn.cursor()
 
     def create_table(self):
         """" 
@@ -68,22 +71,25 @@ class MagneticReader():
         WARNING: If the table exists we'll raise an exception.
          """
         self.c = self.conn.cursor()
-        self.c.execute('''
-                CREATE table entries 
-                (id INTEGER PRIMARY KEY ASC, name varchar(250) NOT NULL, card_number INTEGER NOT NULL, primary_account_number varchar(250) NOT NULL, additional_data varchar(250) NOT NULL, longitudinal_redundancy_check varchar(250) NOT NULL)
-                ''')
+        try:
+            self.c.execute('''
+                    CREATE table entries 
+                    (date varchar(250) PRIMARY KEY NOT NULL, name varchar(250) NOT NULL, primary_account_number varchar(250) NOT NULL, additional_data varchar(250) NOT NULL)
+                    ''')
+            print("Creating table entries.")
+        except sqlite3.Error as error:
+            print(error)
 
-    def insert_row(self, name, card_number, primary_account_number, additional_data):
-        self.c.execute('''
-              INSERT INTO entries VALUES(1, 'name', 'card_number', 'primary_account_number', 'additional_data')
-              ''')
-
+    def insert_row(self, name, primary_account_number, additional_data):
+        print("Inserting values into row of database.")
+        date = str(self.return_date_string())
+        self.c.execute("insert into entries values(?, ?, ?, ?)", (date, name, primary_account_number, additional_data,))
+        self.conn.commit()
 
     def return_date_string(self):
         full_date = str(datetime.datetime.now())
         short_date = full_date[5:10]
-        print(short_date)
-        return short_date
+        return full_date
 
     def search_pattern(self, pattern, data):
         compiled_pattern = re.compile(pattern)
@@ -115,17 +121,17 @@ class MagneticReader():
         if(primary_account is not None):
             primary_account = primary_account.replace("^","")
             primary_account = primary_account.replace("%","")
-            print(primary_account)
+            self.primary_account = primary_account
 
         if(name is not None):
             name = name.replace("^","")
             name = name.replace(" ","")
-            print(name)
+            self.name = name
 
         if(additional_data is not None):
             additional_data = additional_data.replace("?","")
             additional_data = additional_data.replace("=","")
-            print(additional_data)
+            self.additional_data = additional_data
 
 
     def listen_for_magnetic_swipe(self):
@@ -135,6 +141,7 @@ class MagneticReader():
                     ID = getpass.getpass(prompt = 'Please swipe your ID card. ')
                     print(ID)
                     self.obtain_user_data(ID)
+                    self.insert_row(self.name, self.primary_account, self.additional_data)
                 except KeyboardInterrupt:
                     sys.exit(1)
 
@@ -143,7 +150,7 @@ class MagneticReader():
 if __name__ == '__main__':
     reader = MagneticReader()
     reader.establish_data_base()
-    #reader.create_table()
+    reader.create_table()
     reader.listen_for_magnetic_swipe()
 
 
