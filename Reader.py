@@ -51,72 +51,80 @@ name_pattern = r"([\^][A-z|\s]+[\/][A-z|\s]+[\^])"              # Provides the a
 additional_primary_account = r"([\?][\;][0-9]+[=])"             # I've found that many times this returns the same thing as the primary account number.
 additional_data = r"([=][0-9]+[\?])"                            # If Track 1 layout is used, this will return None.
 
-conn = None
-c = None
 
-def establish_data_base():
-    global conn
-    conn = sqlite3.connect('magnetic_entries.db')
-
-def create_table():
-    global conn
-    c = conn.cursor()
-    c.execute('''
-            CREATE table entries 
-            (id INTEGER PRIMARY KEY ASC, name varchar(250) NOT NULL, card_number INTEGER NOT NULL, primary_account_number varchar(250) NOT NULL, additional_data varchar(250) NOT NULL, longitudinal_redundancy_check varchar(250) NOT NULL)
-            ''')
-
-def insert_row(name, card_number, primary_account_number, additional_data):
-    global conn
-    c.execute('''
-          INSERT INTO person VALUES(1, 'name', 'card_number', 'primary_account_number', 'additional_data')
-          ''')
+class MagneticReader():
+    def __init__(self):
+        self.conn = None
+        self.c = None
 
 
-def return_date_string():
-    full_date = str(datetime.datetime.now())
-    short_date = full_date[5:10]
-    print(short_date)
-    return short_date
+    def establish_data_base(self):
+        """ This function will create a new database file if it does not exist. """
+        self.conn = sqlite3.connect('magnetic_entries.db')
 
-def search_pattern(pattern, data):
-    compiled_pattern = re.compile(pattern)
-    match = compiled_pattern.search(data)
-    if(match != None):
-        print(match.group(0))
+    def create_table(self):
+        """" 
+        This function will create an entries table in the database.
+        WARNING: If the table exists we'll raise an exception.
+         """
+        self.c = self.conn.cursor()
+        self.c.execute('''
+                CREATE table entries 
+                (id INTEGER PRIMARY KEY ASC, name varchar(250) NOT NULL, card_number INTEGER NOT NULL, primary_account_number varchar(250) NOT NULL, additional_data varchar(250) NOT NULL, longitudinal_redundancy_check varchar(250) NOT NULL)
+                ''')
+
+    def insert_row(self, name, card_number, primary_account_number, additional_data):
+        self.c.execute('''
+              INSERT INTO entries VALUES(1, 'name', 'card_number', 'primary_account_number', 'additional_data')
+              ''')
 
 
+    def return_date_string(self):
+        full_date = str(datetime.datetime.now())
+        short_date = full_date[5:10]
+        print(short_date)
+        return short_date
 
-def match_pattern(pattern, data):
-    """
-    If zero or more characters at the beginning of string match this regular expression, 
-    return a corresponding match object. Return None if the string does not match the pattern; 
-    note that this is different from a zero-length match.
-    """
-    print("Pattern: " + pattern)
-    print("String: " + data)
-    compiled_pattern = re.compile(pattern)
-    match = compiled_pattern.match(data)
-    if(match != None):
-        print(match.group(0))
-        return match.group(0)
+    def search_pattern(self, pattern, data):
+        compiled_pattern = re.compile(pattern)
+        match = compiled_pattern.search(data)
+        if(match != None):
+            print(match.group(0))
 
-def listen_for_magnetic_swipe():
-    while True:
+    def match_pattern(self, pattern, data):
+        """
+        If zero or more characters at the beginning of string match this regular expression, 
+        return a corresponding match object. Return None if the string does not match the pattern; 
+        note that this is different from a zero-length match.
+        """
+        print("Pattern: " + pattern)
+        print("String: " + data)
+        compiled_pattern = re.compile(pattern)
+        match = compiled_pattern.match(data)
+        if(match != None):
+            print(match.group(0))
+            return match.group(0)
+
+    def obtain_user_data(self):
+        pass
+
+    def listen_for_magnetic_swipe(self):
         while True:
-            try:
-                ID = getpass.getpass(prompt = 'Please swipe your ID card. ')
-                print(ID)
-                search_pattern(additional_data,ID)
-            except KeyboardInterrupt:
-                sys.exit(1)
+            while True:
+                try:
+                    ID = getpass.getpass(prompt = 'Please swipe your ID card. ')
+                    print(ID)
+                    self.search_pattern(additional_data,ID)
+                except KeyboardInterrupt:
+                    sys.exit(1)
 
 
 
 if __name__ == '__main__':
-    establish_data_base()
-    #create_table()
-    listen_for_magnetic_swipe()
+    reader = MagneticReader()
+    reader.establish_data_base()
+    #reader.create_table()
+    reader.listen_for_magnetic_swipe()
 
 
 
